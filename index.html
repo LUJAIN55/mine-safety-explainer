@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ذكاء حوادث السلامة في المناجم — شرح المشروع</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3EFE2; --surface:#FBF9F2; --ink:#26261F; --muted:#67634F;
+  --accent:#7A6626; --gold:#C9A84C; --gold-soft:#EDE3BE; --dark:#2B2B26; --on-dark:#F3F1EC;
+  --line:#D9D2B8; --rose:#F3DAD5; --rose-ink:#7E3A2E;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#191916; --surface:#23231F; --ink:#F0EDE2; --muted:#B4AF9B;
+    --accent:#DDBF68; --gold:#C9A84C; --gold-soft:#3A3524; --dark:#0E0E0C; --on-dark:#F3F1EC;
+    --line:#3A392F; --rose:#4A2B25; --rose-ink:#F0C3B9;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#191916; --surface:#23231F; --ink:#F0EDE2; --muted:#B4AF9B;
+  --accent:#DDBF68; --gold:#C9A84C; --gold-soft:#3A3524; --dark:#0E0E0C; --on-dark:#F3F1EC;
+  --line:#3A392F; --rose:#4A2B25; --rose-ink:#F0C3B9;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 70px)}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,"Noto Naskh Arabic",sans-serif;
+  font-size:1.0625rem; line-height:1.85; -webkit-text-size-adjust:100%;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1080px;margin-inline:auto;padding-inline:20px}
+h1,h2,h3{line-height:1.4;margin:0}
+p{margin:0}
+.muted{color:var(--muted)}
+
+/* progress + nav */
+#bar{position:fixed;inset-inline:0;top:env(safe-area-inset-top,0px);height:3px;background:transparent;z-index:30}
+#bar i{display:block;height:100%;width:100%;background:var(--gold);transform:scaleX(0);transform-origin:right}
+nav{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+  background:var(--bg);border-bottom:1px solid var(--line);
+}
+nav .wrap{display:flex;gap:6px;overflow-x:auto;padding-block:10px;scrollbar-width:none}
+nav a{
+  white-space:nowrap;text-decoration:none;color:var(--muted);
+  padding:4px 12px;border-radius:999px;font-size:.92rem;font-weight:500;
+}
+nav a:hover{color:var(--ink)}
+nav a.on{background:var(--dark);color:var(--on-dark)}
+
+/* hero */
+.hero{padding-block:52px 40px}
+.hero h1{font-size:clamp(1.9rem,5.2vw,3.1rem);font-weight:700;max-width:18em;letter-spacing:0}
+.hero .lead{max-width:38em;margin-top:18px;color:var(--muted);font-size:1.1rem}
+.parser{
+  margin-top:34px;background:var(--dark);color:var(--on-dark);
+  border-radius:20px;padding:26px clamp(18px,3vw,34px);
+}
+.parser .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.parser .top b{font-weight:600}
+.parser .note{font-size:.85rem;opacity:.7}
+.ghost{
+  background:transparent;border:1px solid color-mix(in srgb,var(--on-dark) 40%,transparent);
+  color:var(--on-dark);padding:5px 14px;border-radius:999px;font-size:.9rem
+}
+.ghost:hover{background:color-mix(in srgb,var(--on-dark) 12%,transparent)}
+.narr{
+  direction:ltr;text-align:left;margin-top:20px;font-size:clamp(1.05rem,2.3vw,1.35rem);
+  line-height:2.1;font-family:Georgia,"Times New Roman",serif;
+}
+.hl{
+  background:none;border:none;border-bottom:3px solid var(--gold);padding:0 2px;
+  font:inherit;color:inherit;cursor:pointer;border-radius:3px 3px 0 0;
+}
+.hl[aria-pressed="true"]{background:var(--gold);color:#26261F}
+.hl:hover{background:color-mix(in srgb,var(--gold) 45%,transparent)}
+.hl[aria-pressed="true"]:hover{background:var(--gold)}
+.readout{
+  margin-top:18px;display:grid;grid-template-columns:auto 1fr;gap:6px 18px;
+  padding:16px 18px;border-radius:14px;background:color-mix(in srgb,var(--on-dark) 8%,transparent);
+  min-height:6.4em;
+}
+.readout .k{color:var(--gold);font-weight:600}
+.readout .v{font-weight:600}
+.readout .w{grid-column:1/-1;font-size:.95rem;opacity:.85}
+
+/* sections */
+section{padding-block:52px;border-top:1px solid var(--line)}
+section>.wrap>h2{font-size:clamp(1.5rem,3.2vw,2.05rem);font-weight:700}
+section>.wrap>.sub{color:var(--muted);max-width:42em;margin-top:8px}
+.tag{
+  display:inline-block;font-size:.8rem;font-weight:600;padding:1px 10px;border-radius:999px;
+  background:var(--gold-soft);color:var(--accent);
+}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:30px;border-block:1px solid var(--line)}
+.stat{padding:22px 4px;}
+.stat + .stat{border-inline-start:1px solid var(--line);padding-inline-start:22px}
+.stat .n{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums;direction:ltr;text-align:start}
+.stat .l{color:var(--muted);font-size:.95rem;margin-top:4px}
+@media (max-width:640px){.stat + .stat{border-inline-start:none;border-top:1px solid var(--line);padding-inline-start:4px}}
+.problem-list{margin:26px 0 0;padding:0;list-style:none;display:grid;gap:12px;max-width:46em}
+.problem-list li{padding-inline-start:20px;position:relative}
+.problem-list li::before{content:"";position:absolute;inset-inline-start:0;top:.85em;width:8px;height:8px;border-radius:50%;background:var(--gold)}
+
+/* map */
+.lane-title{margin:30px 0 10px;font-weight:600;color:var(--accent)}
+.lane{display:flex;gap:26px;overflow-x:auto;padding:6px 4px 14px;scrollbar-width:thin}
+.node{
+  flex:0 0 auto;min-width:138px;text-align:start;position:relative;
+  background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;
+}
+.node small{display:block;color:var(--muted);font-size:.78rem}
+.node b{display:block;font-weight:600;line-height:1.5}
+.node:not(:last-child)::after{
+  content:"◂";position:absolute;inset-inline-end:-21px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:1.1rem
+}
+.node:hover{border-color:var(--gold)}
+.node[aria-pressed="true"]{background:var(--dark);color:var(--on-dark);border-color:var(--dark)}
+.node[aria-pressed="true"] small{color:var(--gold)}
+.detail{
+  margin-top:14px;border:1.5px solid var(--line);border-radius:16px;background:var(--surface);
+  padding:22px clamp(16px,3vw,28px);
+}
+.detail h3{font-size:1.3rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.detail dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:14px 0 0}
+.detail dt{color:var(--accent);font-weight:600}
+.detail dd{margin:0}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.btn{
+  background:var(--dark);color:var(--on-dark);border:none;padding:8px 18px;border-radius:999px;font-weight:600
+}
+.btn:hover{background:color-mix(in srgb,var(--dark) 80%,var(--gold))}
+.btn.alt{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.alt:hover{border-color:var(--gold)}
+
+/* toggle */
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;padding:3px;margin-top:22px;background:var(--surface)}
+.seg button{border:none;background:none;padding:6px 20px;border-radius:999px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--dark);color:var(--on-dark)}
+.ba{margin-top:20px;display:grid;gap:0;border:1.5px solid var(--line);border-radius:16px;overflow:hidden;background:var(--surface)}
+.ba .r{display:grid;grid-template-columns:150px 1fr;gap:14px;padding:14px 20px;align-items:baseline}
+.ba .r + .r{border-top:1px solid var(--line)}
+.ba .r b{color:var(--accent);font-weight:600}
+.ba .val{transition:opacity .2s}
+.ba.after{border-color:var(--gold)}
+.big-change{
+  margin-top:16px;padding:16px 20px;border-radius:14px;background:var(--gold-soft);
+  font-weight:600;display:none;
+}
+.big-change.show{display:block}
+@media (max-width:560px){.ba .r{grid-template-columns:1fr;gap:2px}}
+
+/* ABT */
+.abt{
+  margin-top:28px;display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:center;
+}
+.abt .col{display:grid;gap:9px}
+.abt h3{font-size:.95rem;color:var(--muted);font-weight:600;margin-bottom:2px}
+.chip{
+  text-align:start;background:var(--gold-soft);border:1.5px solid transparent;border-radius:12px;padding:8px 14px;
+  font-weight:500
+}
+.chip:hover{border-color:var(--gold)}
+.chip[aria-pressed="true"]{border-color:var(--dark)}
+.chip.t{background:var(--gold);color:#26261F;font-weight:600}
+.chip.t[aria-pressed="true"]{background:var(--dark);color:var(--on-dark)}
+.core{
+  background:var(--dark);color:var(--on-dark);border-radius:20px;padding:34px 26px;text-align:center;
+  font-weight:700;font-size:1.25rem;line-height:1.5;min-width:170px
+}
+.core small{display:block;font-weight:400;opacity:.75;font-size:.82rem;margin-top:6px}
+@media (max-width:760px){.abt{grid-template-columns:1fr}.core{padding:22px}}
+.abt-note{margin-top:16px;padding:14px 18px;border:1.5px solid var(--line);border-radius:14px;background:var(--surface);min-height:5.2em}
+.abt-note code,.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em;direction:ltr;unicode-bidi:embed;background:var(--gold-soft);padding:1px 7px;border-radius:6px}
+.leak{margin-top:14px;padding:12px 18px;border-radius:14px;background:var(--rose);color:var(--rose-ink);font-size:.95rem}
+
+/* router */
+.router{margin-top:26px;border:1.5px solid var(--line);border-radius:18px;background:var(--surface);padding:22px clamp(16px,3vw,28px)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.q{background:var(--bg);border:1.5px solid var(--line);border-radius:999px;padding:5px 14px;font-size:.93rem}
+.q:hover{border-color:var(--gold)}
+.ask{display:flex;gap:8px;margin-top:14px}
+.ask input{
+  flex:1;min-width:0;font:inherit;padding:9px 14px;border-radius:12px;border:1.5px solid var(--line);
+  background:var(--bg);color:var(--ink)
+}
+.split{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.path{border:1.5px solid var(--line);border-radius:14px;padding:16px 18px;opacity:.5;transition:opacity .25s,border-color .25s}
+.path.on{opacity:1;border-color:var(--gold);background:var(--gold-soft)}
+.path h3{font-size:1.02rem}
+.path ol{margin:10px 0 0;padding-inline-start:20px;font-size:.93rem}
+.path li{margin-bottom:4px}
+@media (max-width:640px){.split{grid-template-columns:1fr}}
+.verdict{margin-top:14px;font-weight:600;min-height:3.2em}
+.verdict span{color:var(--accent)}
+
+/* tabs & cards */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:24px}
+.tab{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 16px;font-weight:600;color:var(--muted)}
+.tab:hover{border-color:var(--gold)}
+.tab[aria-selected="true"]{background:var(--dark);color:var(--on-dark);border-color:var(--dark)}
+.panel{margin-top:16px}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.fig{border:1.5px solid var(--line);border-radius:16px;background:var(--surface);padding:18px 20px}
+.fig .b{font-size:1.7rem;font-weight:700;line-height:1.3;direction:rtl}
+.fig .d{color:var(--muted);font-size:.93rem;margin-top:6px}
+.qlist{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.qlist li{
+  background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:10px 16px
+}
+.kicker{font-weight:600;color:var(--accent);margin-bottom:10px}
+
+/* timeline */
+.gantt{margin-top:26px;display:grid;grid-template-columns:repeat(12,1fr);gap:4px;direction:rtl}
+.gantt .wk{font-size:.72rem;color:var(--muted);text-align:center}
+.gantt button{
+  border:none;border-radius:10px;padding:10px 6px;background:var(--gold-soft);font-weight:600;font-size:.88rem;
+  min-height:56px
+}
+.gantt button:hover{background:var(--gold);color:#26261F}
+.gantt button[aria-pressed="true"]{background:var(--dark);color:var(--on-dark)}
+@media (max-width:560px){.gantt button{font-size:.72rem;padding:6px 2px}}
+
+/* deploy */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:24px}
+.step{
+  text-align:start;border:1.5px solid var(--line);border-radius:16px;background:var(--surface);padding:18px 20px;
+}
+.step[aria-pressed="true"]{border-color:var(--gold);background:var(--gold-soft)}
+.step b{display:block;font-size:1.05rem}
+.step .x{display:none;margin-top:8px;font-size:.95rem}
+.step[aria-pressed="true"] .x{display:block}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+@media (max-width:640px){.two{grid-template-columns:1fr}}
+.box{border:1.5px solid var(--line);border-radius:16px;background:var(--surface);padding:18px 22px}
+.box h3{font-size:1.02rem;margin-bottom:8px}
+.box ul{margin:0;padding-inline-start:20px}
+.box li{margin-bottom:4px}
+
+/* team */
+.team{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:24px}
+.member{border:1.5px solid var(--line);border-radius:16px;background:var(--surface);padding:16px 18px}
+.member b{display:block;font-size:1.05rem}
+.member span{color:var(--muted);font-size:.92rem}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.tool{border:1.5px solid var(--line);border-radius:999px;padding:4px 14px;background:var(--surface);font-size:.93rem}
+.tool em{font-style:normal;color:var(--muted);font-size:.82rem;margin-inline-start:6px}
+
+footer{padding-block:34px 60px;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="bar"><i></i></div>
+<nav aria-label="أقسام الصفحة"><div class="wrap" id="navlinks"></div></nav>
+
+<header class="hero wrap" id="top">
+  <h1>من تقرير حادث مكتوب بحرية إلى معرفة سلامة يمكن البحث فيها</h1>
+  <p class="lead">مشروع «ذكاء حوادث السلامة في المناجم» يقرأ نصوص تقارير MSHA ويصنّفها تلقائياً، ثم يجيب عن أسئلة السلامة مع إظهار السجلات التي بُنيت عليها الإجابة.</p>
+
+  <div class="parser" aria-live="polite">
+    <div class="top">
+      <b>كيف يقرأ النظام تقريراً؟ اضغط على الكلمات المسطّرة</b>
+      <button class="ghost" id="nextNarr" type="button">تقرير آخر</button>
+    </div>
+    <p class="narr" id="narr"></p>
+    <div class="readout" id="readout"></div>
+    <p class="note" style="margin-top:10px">أمثلة كتبناها لتوضيح الفكرة، وليست من قاعدة MSHA. التصنيف الفعلي يتم بنموذج BERT مدرّب على بيانات MSHA.</p>
+  </div>
+</header>
+
+<section id="problem">
+  <div class="wrap">
+    <h2>المشكلة: بيانات كثيرة ونصوص لا أحد يقرؤها</h2>
+    <p class="sub">كل حادث في مناجم أمريكا منذ عام 2000 موثّق بقصة قصيرة. القصص فيها الجواب، لكن قراءتها وترميزها يدوياً لا يتسع.</p>
+    <div class="stats" id="stats"></div>
+    <ul class="problem-list">
+      <li>المراجعة اليدوية بطيئة وغير متسقة بين شخص وآخر.</li>
+      <li>تكرار الحوادث نفسها يبقى مخفياً داخل النصوص، فلا يُصلَح السبب.</li>
+      <li>لا توجد طريقة سريعة لسؤال «ما الذي تسبب في أغلب إصابات السيور؟» والحصول على جواب موثوق.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="map">
+  <div class="wrap">
+    <h2>خريطة المشروع من البداية للنهاية</h2>
+    <p class="sub">اضغط على أي محطة لتعرف ماذا يحدث فيها ولماذا. أو شغّل الجولة لتمرّ على المحطات بالترتيب.</p>
+    <div class="lane-title">المسار الأول: من البيانات إلى التصنيف</div>
+    <div class="lane" id="lane1"></div>
+    <div class="lane-title">المسار الثاني: من المعرفة إلى المساعد</div>
+    <div class="lane" id="lane2"></div>
+    <div class="detail" id="nodeDetail" aria-live="polite"></div>
+    <div class="ctrl">
+      <button class="btn" id="tour" type="button">شغّل الجولة</button>
+      <button class="btn alt" id="prevN" type="button">السابق</button>
+      <button class="btn alt" id="nextN" type="button">التالي</button>
+    </div>
+  </div>
+</section>
+
+<section id="before">
+  <div class="wrap">
+    <h2>قبل المشروع وبعده</h2>
+    <p class="sub">بدّل بين الحالتين لترى كيف يتغيّر كل جانب من العمل.</p>
+    <div class="seg" role="group" aria-label="الحالة">
+      <button type="button" id="bAs" aria-pressed="true">قبل (As-Is)</button>
+      <button type="button" id="bTo" aria-pressed="false">بعد (To-Be)</button>
+    </div>
+    <div class="ba" id="ba"></div>
+    <div class="big-change" id="bigChange">نسبة الخطأ في التصنيف: من 58% إلى أقل من 10%</div>
+  </div>
+</section>
+
+<section id="abt">
+  <div class="wrap">
+    <h2>الجدول التحليلي (ABT): صف واحد لكل حادث</h2>
+    <p class="sub">كل صف يمثّل «حادث سلامة منجمي» واحداً. الأعمدة على اليمين مدخلات، والثلاثة على اليسار هي ما نريد التنبؤ به. اضغط على أي عنصر.</p>
+    <div class="abt">
+      <div class="col"><h3>المدخلات (Features)</h3><div class="col" id="feats"></div></div>
+      <div class="core">حادث سلامة<br>منجمي<small>صف واحد = تقرير واحد</small></div>
+      <div class="col"><h3>الأهداف (Targets)</h3><div class="col" id="targs"></div></div>
+    </div>
+    <div class="abt-note" id="abtNote" aria-live="polite"></div>
+    <div class="leak">أعمدة مثل <span class="code">DAYS_LOST</span> و<span class="code">DAYS_RESTRICT</span> و<span class="code">SCHEDULE_CHARGE</span> لا تدخل كمدخلات عند التنبؤ بالشدة، لأنها ناتجة عن الإصابة نفسها وتكشف الجواب للنموذج.</div>
+  </div>
+</section>
+
+<section id="assistant">
+  <div class="wrap">
+    <h2>المساعد الذكي: يعدّ أو يبحث، حسب السؤال</h2>
+    <p class="sub">الأسئلة نوعان. سؤال العدّ يحتاج أرقاماً حقيقية من كل البيانات، وسؤال الوصف يحتاج سجلات مشابهة. اختر سؤالاً أو اكتب سؤالك لترى أي مسار يأخذه.</p>
+    <div class="router">
+      <div class="chips" id="qchips"></div>
+      <div class="ask">
+        <input id="qin" type="text" placeholder="اكتب سؤالاً عن حوادث المناجم" aria-label="سؤال">
+        <button class="btn" id="qgo" type="button">وجّه السؤال</button>
+      </div>
+      <div class="split">
+        <div class="path" id="pCount">
+          <h3>مسار العدّ: استعلام على كامل البيانات</h3>
+          <ol><li>يحدد الحقل والفلتر (مثلاً: المعدة = سير ناقل)</li><li>ينفّذ استعلاماً على كل الـ146,442 سجلاً</li><li>يعرض الأعداد الحقيقية ويكتبها النموذج اللغوي مع ذكر الاستعلام</li></ol>
+        </div>
+        <div class="path" id="pFind">
+          <h3>مسار الوصف: بحث دلالي (RAG)</h3>
+          <ol><li>يحوّل السؤال إلى متجه (embedding)</li><li>يجلب أقرب السجلات في المعنى</li><li>يمرّرها للنموذج اللغوي ويعرضها كدليل</li></ol>
+        </div>
+      </div>
+      <p class="verdict" id="verdict" aria-live="polite">اختر سؤالاً من الأعلى.</p>
+      <p class="muted" style="font-size:.85rem">هذا توضيح لفكرة التوجيه بقواعد بسيطة. النظام الفعلي يُبنى في مراحل لاحقة.</p>
+    </div>
+    <p style="margin-top:16px;max-width:42em">لماذا نفصل بينهما؟ لأن استرجاع أقرب 10 سجلات لا يجيب عن «ما أكثر سبب؟». النموذج سيلخّص 10 سجلات من 274,737 ويقدّمها كأنها نتيجة عامة.</p>
+  </div>
+</section>
+
+<section id="metrics">
+  <div class="wrap">
+    <h2>كيف نعرف أن المشروع نجح؟</h2>
+    <p class="sub">مقاييس تقنية للنماذج، ومقاييس أعمال للأثر، ثم العائد على الاستثمار.</p>
+    <div class="tabs" role="tablist" id="mtabs"></div>
+    <div class="panel figs" id="mpanel"></div>
+  </div>
+</section>
+
+<section id="questions">
+  <div class="wrap">
+    <h2>الأسئلة التحليلية الخمسة والعشرون</h2>
+    <p class="sub">خمسة أنواع من الأسئلة، من «ماذا حدث؟» إلى «ماذا يمكن أتمتته؟». اختر نوعاً.</p>
+    <div class="tabs" role="tablist" id="qtabs"></div>
+    <div class="panel" id="qpanel"></div>
+  </div>
+</section>
+
+<section id="timeline">
+  <div class="wrap">
+    <h2>الجدول الزمني: 12 أسبوعاً في 6 مراحل</h2>
+    <p class="sub">اضغط على مرحلة لترى ما يُسلَّم فيها. لكل مرحلة مسؤول واحد من الفريق وبقية الأعضاء يراجعون.</p>
+    <div class="gantt" id="gantt"></div>
+    <div class="detail" id="phaseDetail" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="deploy">
+  <div class="wrap">
+    <h2>خطة النشر <span class="tag">مقترحة</span></h2>
+    <p class="sub">تطبيق ويب بسيط: تدخل وصف حادث فتحصل على التصنيفات المقترحة وأقرب 5 حوادث مشابهة، ويمكنك سؤال المساعد. اضغط على مرحلة لتفاصيلها.</p>
+    <div class="steps" id="steps"></div>
+    <div class="two">
+      <div class="box"><h3>المتابعة والصيانة</h3><ul>
+        <li>قياس دقة التصنيف دورياً على حوادث جديدة (MSHA تحدّث بياناتها أسبوعياً).</li>
+        <li>إعادة التدريب عند توفر بيانات جديدة كافية.</li>
+        <li>تسجيل الأسئلة التي يفشل فيها المساعد لتحسينه.</li></ul></div>
+      <div class="box"><h3>بطاقة النموذج (Model Card)</h3><ul>
+        <li>بيانات التدريب المستخدمة.</li>
+        <li>الأداء المقاس (Macro-F1).</li>
+        <li>القيود المعروفة، ومنها أن النموذج مدرّب على بيانات أمريكية بالإنجليزية.</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section id="team">
+  <div class="wrap">
+    <h2>أقسام العمل وطريقة التواصل</h2>
+    <div class="team" id="teamGrid"></div>
+    <div class="tools" id="tools"></div>
+  </div>
+</section>
+
+<section id="scope">
+  <div class="wrap">
+    <h2>حدود المشروع</h2>
+    <div class="two">
+      <div class="box"><h3>داخل النطاق</h3><ul>
+        <li>تقارير حوادث المناجم التاريخية</li><li>التنظيف والاستكشاف</li><li>تصنيف بنموذج مرجعي ثم BERT</li>
+        <li>تحليل الأنماط</li><li>البحث الدلالي وRAG</li><li>تطبيق تجريبي وبطاقة نموذج</li></ul></div>
+      <div class="box"><h3>خارج النطاق</h3><ul>
+        <li>المراقبة الفورية لموقع المنجم</li><li>قرارات سلامة ذاتية بلا إنسان</li>
+        <li>التحكم في المعدات</li><li>استبدال تحقيقات السلامة المتخصصة</li></ul></div>
+    </div>
+    <div class="leak" style="background:var(--gold-soft);color:var(--ink)">قيد معروف: النموذج مدرّب على بيانات أمريكية بالإنجليزية. قبل الاستخدام التشغيلي يحتاج إعادة تدريب على تقارير محلية، والتقارير العربية خارج النطاق الحالي. النظام أداة دعم قرار وليس بديلاً عن المختصين.</div>
+  </div>
+</section>
+
+<footer><div class="wrap">مصدر البيانات: MSHA Accident Injuries Dataset (بيانات حكومية أمريكية عامة). الأرقام من فحص الملف بتاريخ 14 سبتمبر 2026.</div></footer>
+
+<script>
+const $ = (s, r=document) => r.querySelector(s);
+const el = (t, props={}, kids=[]) => { const e=document.createElement(t); Object.assign(e,props); kids.forEach(k=>e.append(k)); return e; };
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- nav ---------- */
+const sections = [['problem','المشكلة'],['map','الخريطة'],['before','قبل وبعد'],['abt','الجدول ABT'],['assistant','المساعد'],['metrics','النجاح'],['questions','الأسئلة'],['timeline','الجدول الزمني'],['deploy','النشر'],['team','التواصل'],['scope','الحدود']];
+const nl = $('#navlinks');
+sections.forEach(([id,t]) => nl.append(el('a',{href:'#'+id,textContent:t,id:'n-'+id})));
+/* centre an element inside a scrolling strip (works in RTL, where scrollLeft is negative) */
+function centerIn(box, item){
+  const b=box.getBoundingClientRect(), i=item.getBoundingClientRect();
+  box.scrollBy({left:(i.left+i.width/2)-(b.left+b.width/2), behavior:'auto'});
+}
+let activeId=null;
+function setActive(id){
+  if(id===activeId) return; activeId=id;
+  nl.querySelectorAll('a').forEach(a=>a.classList.toggle('on',a.id==='n-'+id));
+  const a=$('#n-'+id); if(a) centerIn(nl,a);
+}
+nl.addEventListener('click',e=>{ const a=e.target.closest('a'); if(a) setActive(a.id.slice(2)); });
+const barI=$('#bar i'); let tick=false;
+function onScroll(){
+  tick=false;
+  const h=document.documentElement;
+  barI.style.transform='scaleX('+Math.min(1,Math.max(0,h.scrollTop/(h.scrollHeight-h.clientHeight)))+')';
+  let cur=null;
+  for(const [id] of sections){ if($('#'+id).getBoundingClientRect().top<=140) cur=id; }
+  if(h.scrollTop+h.clientHeight>=h.scrollHeight-6) cur=sections[sections.length-1][0];
+  if(cur) setActive(cur); else { activeId=null; nl.querySelectorAll('a').forEach(a=>a.classList.remove('on')); }
+}
+addEventListener('scroll',()=>{ if(!tick){tick=true;requestAnimationFrame(onScroll);} },{passive:true});
+onScroll();
+
+/* ---------- hero parser ---------- */
+const narratives = [
+  { parts:[['Employee was clearing spilled material from the conveyor when '],['a rock fell from the belt and struck','type'],[' his '],['left hand','body'],[', causing a '],['fracture','sev'],['.']],
+    type:['ضربة بجسم ساقط','عبارة «fell … and struck» تدل على أن جسماً سقط وأصاب العامل.'],
+    body:['اليد','ذُكرت «left hand» صراحة في النص.'],
+    sev:['غالباً: أيام غياب عن العمل','الكسر إصابة تستدعي عادةً الابتعاد عن العمل. النموذج يقدّرها من الصياغة.'] },
+  { parts:[['Miner '],['slipped on a wet ladder rung','type'],[' while climbing down from the haul truck and '],['injured','sev'],[' his '],['lower back','body'],['.']],
+    type:['انزلاق أو سقوط شخص','«slipped» و«ladder» تشير إلى انزلاق أثناء النزول.'],
+    body:['الظهر','«lower back» تُصنَّف ضمن الظهر.'],
+    sev:['غير محددة صراحة','النص لا يذكر عدد الأيام، فيقدّرها النموذج من السياق وقد تحتاج مراجعة بشرية.'] },
+  { parts:[['Electrician '],['received a shock when his hand contacted an energized conductor','type'],[' while replacing a motor starter; he was '],['taken to hospital','sev'],[' with burns to his '],['hand','body'],['.']],
+    type:['تماس كهربائي','«shock» و«energized conductor» تدلان على حادث كهربائي.'],
+    body:['اليد','«hand» ذُكرت مع الحروق.'],
+    sev:['شدة أعلى من المعتاد','نقله للمستشفى مؤشر على إصابة أخطر. النموذج يتعلم هذه الإشارات من آلاف التقارير.'] }
+];
+let ni = 0, nsel = 'type';
+const labels = {type:'نوع الحادث', body:'الجزء المصاب', sev:'شدة الإصابة'};
+function renderNarr(){
+  const n = narratives[ni]; const p = $('#narr'); p.textContent='';
+  n.parts.forEach(([t,k]) => {
+    if(!k) p.append(document.createTextNode(t));
+    else { const b = el('button',{type:'button',className:'hl',textContent:t}); b.setAttribute('aria-pressed', k===nsel); b.onclick=()=>{nsel=k;renderNarr()}; p.append(b); }
+  });
+  const [v,w] = n[nsel];
+  $('#readout').innerHTML = `<span class="k">${labels[nsel]}</span><span class="v">${v}</span><span class="w">${w}</span>`;
+}
+$('#nextNarr').onclick = () => { ni=(ni+1)%narratives.length; nsel='type'; renderNarr(); };
+renderNarr();
+
+/* ---------- stats ---------- */
+const stats = [
+  [274737,'سجل حادث منذ عام 2000',''],
+  [146442,'سجل من مناجم المعادن وغير المعادن (نطاقنا)',''],
+  [274725,'سجل فيه نص سردي للحادث',''],
+  [35,'من الإصابات انتهت بأيام غياب عن العمل','%']
+];
+const sg = $('#stats');
+stats.forEach(([n,l,u]) => sg.append(el('div',{className:'stat'},[el('div',{className:'n',textContent:'0'+u}),el('div',{className:'l',textContent:l})])));
+let counted=false;
+new IntersectionObserver((es,ob)=>{ if(es[0].isIntersecting && !counted){ counted=true; ob.disconnect();
+  sg.querySelectorAll('.n').forEach((d,i)=>{ const [n,,u]=stats[i]; if(reduce){d.textContent=n.toLocaleString('en-US')+u;return;}
+    const t0=performance.now(), dur=1100; (function f(t){ const k=Math.min(1,(t-t0)/dur); d.textContent=Math.round(n*(1-Math.pow(1-k,3))).toLocaleString('en-US')+u; if(k<1) requestAnimationFrame(f); })(t0); });
+}}).observe(sg);
+
+/* ---------- map ---------- */
+const nodes = [
+  {t:'جمع البيانات',w:'الأسبوع 1–2',what:'تنزيل ملف الحوادث من MSHA: 274,737 سجلاً و57 عموداً، من عام 2000 حتى اليوم، ويتحدّث أسبوعياً.',why:'مصدر عام ومجاني، وفيه سرد لكل حادث تقريباً.',out:'ملف خام نصي مفصول بالرمز |.'},
+  {t:'التنظيف والتجهيز',w:'الأسبوع 1–2',what:'الاكتفاء بمناجم المعادن وغير المعادن (146,442 سجلاً)، وإزالة القيم البديلة لكل هدف على حدة.',why:'مخاطر الفحم مثل سقوط السقف والميثان لا تنطبق على عملياتنا.',out:'جدول نظيف، صف لكل حادث (ABT).'},
+  {t:'الاستكشاف EDA',w:'الأسبوع 1–2',what:'فحص القيم المفقودة والمكرر والتسميات غير المتسقة وعدم توازن الفئات.',why:'أكبر فئة للجزء المصاب فيها 40,256 سجلاً، وفئات أخرى فيها عشرات فقط.',out:'دفتر نتائج ولوحة اتجاهات.'},
+  {t:'النموذج المرجعي',w:'الأسبوع 3',what:'نموذج بسيط (TF-IDF مع الانحدار اللوجستي) على المهمة نفسها والتقسيم نفسه.',why:'حتى نقيس تحسّن BERT بالأرقام بدل افتراضه.',out:'درجة Macro-F1 لكل هدف.'},
+  {t:'نموذج BERT',w:'الأسبوع 4–6',what:'ضبط دقيق لنموذج محوّلات ليصنّف النص إلى نوع الحادث والجزء المصاب والشدة.',why:'يفهم السياق أفضل من عدّ الكلمات.',out:'ثلاثة نماذج مدرّبة.'},
+  {t:'التقييم',w:'الأسبوع 4–6',what:'تقسيم زمني: تدريب 2000–2021، تحقق 2022، اختبار 2023–2026. مع مصفوفة الارتباك وتحليل الأخطاء.',why:'التقسيم العشوائي يضع تقارير شبه مكررة في التدريب والاختبار فتنتفخ الدرجة.',out:'Macro-F1 ومقارنة بالمرجع (المستهدف: +10 نقاط).'},
+  {t:'أنماط السلامة',w:'الأسبوع 7',what:'تحليل أنواع الحوادث والأجزاء المصابة والمعدات والأسباب، مع مراجعة يدوية لعيّنة من 100 تقرير.',why:'الأسباب المساهمة غير مسجّلة كتسمية، فنعاملها كاستكشاف ونذكرها كملاحظات.',out:'تقرير أنماط السلامة.'},
+  {t:'التضمين والاسترجاع',w:'الأسبوع 8–10',what:'تحويل السرود إلى متجهات (embeddings) وتخزينها في FAISS أو Chroma.',why:'للبحث بالمعنى وليس بالكلمات المطابقة فقط.',out:'قاعدة معرفة قابلة للبحث.'},
+  {t:'المساعد الهجين',w:'الأسبوع 8–10',what:'سؤال العدّ يصير استعلاماً على كل البيانات، وسؤال الوصف يُجاب بالاسترجاع الدلالي مع عرض السجلات.',why:'حتى تكون الأرقام في الإجابة أرقاماً حقيقية لا انطباعاً من 10 سجلات.',out:'إجابة مع مصدرها، وتقييم على نحو 30 سؤالاً معروف الجواب.'},
+  {t:'التطبيق التجريبي',w:'الأسبوع 11–12',what:'تطبيق Streamlit أو FastAPI: أدخل وصف حادث، احصل على التصنيفات وأقرب الحوادث، واسأل المساعد.',why:'ليرى المستخدم النتيجة كاملة في مكان واحد.',out:'تطبيق، وبطاقة نموذج، وتقرير نهائي.'}
+];
+let cur = 0, timer = null;
+const btns = [];
+nodes.forEach((n,i) => {
+  const b = el('button',{type:'button',className:'node'},[el('small',{textContent:n.w}),el('b',{textContent:n.t})]);
+  b.setAttribute('aria-pressed','false'); b.onclick=()=>{stopTour();pick(i)};
+  btns.push(b); $(i<7?'#lane1':'#lane2').append(b);
+});
+function pick(i){
+  cur=(i+nodes.length)%nodes.length; const n=nodes[cur];
+  btns.forEach((b,j)=>b.setAttribute('aria-pressed',j===cur));
+  centerIn(btns[cur].parentElement, btns[cur]);
+  $('#nodeDetail').innerHTML = `<h3>${n.t} <span class="tag">${n.w}</span></h3><dl><dt>ماذا يحدث</dt><dd>${n.what}</dd><dt>لماذا</dt><dd>${n.why}</dd><dt>المخرج</dt><dd>${n.out}</dd></dl>`;
+}
+function stopTour(){ if(timer){clearInterval(timer);timer=null;$('#tour').textContent='شغّل الجولة';} }
+$('#tour').onclick=()=>{ if(timer){stopTour();return;} $('#tour').textContent='أوقف الجولة'; pick(0); timer=setInterval(()=>{ if(cur===nodes.length-1){stopTour();return;} pick(cur+1); },3200); };
+$('#prevN').onclick=()=>{stopTour();pick(cur-1)}; $('#nextN').onclick=()=>{stopTour();pick(cur+1)};
+pick(0);
+
+/* ---------- before / after ---------- */
+const ba = [
+  ['طريقة العمل','تقارير نصية حرة تُراجع يدوياً.','نظام آلي يستخرج ويصنّف تفاصيل الحادث فوراً.'],
+  ['حجم البيانات','274,737 سجلاً غير مهيكل.','تحليل سريع لكل السجلات القديمة والجديدة.'],
+  ['التحدي والتحسّن','المراجعة اليدوية بطيئة، والأدوات الآلية الحالية تخطئ حتى 58%.','تصنيف عالي الدقة يلغي المراجعة البطيئة.'],
+  ['الأنماط','أنماط حرجة مدفونة في النص، ومخاطر لا تُكتشف.','تنبيهات تكشف الأنماط قبل وقوع الحوادث.'],
+  ['الأثر على الأعمال','خطر حوادث خطيرة وتوقف وغرامات وأيام عمل ضائعة.','إصابات أقل وتوقف أقل وغرامات أقل وربحية محمية.']
+];
+function renderBA(after){
+  $('#bAs').setAttribute('aria-pressed',!after); $('#bTo').setAttribute('aria-pressed',after);
+  const box=$('#ba'); box.classList.toggle('after',after); box.textContent='';
+  ba.forEach(r => box.append(el('div',{className:'r'},[el('b',{textContent:r[0]}),el('span',{className:'val',textContent:r[after?2:1]})])));
+  $('#bigChange').classList.toggle('show',after);
+}
+$('#bAs').onclick=()=>renderBA(false); $('#bTo').onclick=()=>renderBA(true); renderBA(false);
+
+/* ---------- ABT ---------- */
+const feats = [
+  ['نص الحادث (Narrative)','NARRATIVE','النص الحر الذي كتبه المُبلِّغ. هو المدخل الرئيسي، والنموذج الأساسي يعتمد عليه وحده.'],
+  ['تاريخ الحادث','ACCIDENT_DATE','يُستخدم في التقسيم الزمني للتدريب والاختبار، وفي دراسة الاتجاهات.'],
+  ['نوع المنجم','COAL_METAL_IND','نحتفظ بمناجم المعادن وغير المعادن فقط (القيمة M).'],
+  ['الوظيفة','OCCUPATION','وظيفة المصاب. معلومة اختيارية تُعرف وقت وصول التقرير.'],
+  ['الخبرة','TOTAL_EXPERIENCE','سنوات خبرة المصاب. معلومة اختيارية تُعرف وقت وصول التقرير.']
+];
+const targs = [
+  ['نوع الحادث','ACCIDENT_TYPE','كيف وقع الحادث. أمثلة: سقوط شخص، ضربة بجسم، آلات، صدمة كهربائية.'],
+  ['الجزء المصاب','INJ_BODY_PART','أي جزء من الجسم أُصيب. أمثلة: اليد، الظهر، العين، القدم.'],
+  ['شدة الإصابة','DEGREE_INJURY','نتيجة الإصابة. أمثلة: وفاة، أيام غياب عن العمل، عمل مقيّد، بلا فقدان وقت.']
+];
+const fb=[],tb=[];
+function abtPick(kind,i){
+  fb.forEach((b,j)=>b.setAttribute('aria-pressed',kind==='f'&&j===i)); tb.forEach((b,j)=>b.setAttribute('aria-pressed',kind==='t'&&j===i));
+  const d=(kind==='f'?feats:targs)[i];
+  $('#abtNote').innerHTML=`<b>${d[0]}</b> <span class="code">${d[1]}</span><br>${d[2]}`;
+}
+feats.forEach((d,i)=>{const b=el('button',{type:'button',className:'chip',textContent:d[0]});b.setAttribute('aria-pressed','false');b.onclick=()=>abtPick('f',i);fb.push(b);$('#feats').append(b)});
+targs.forEach((d,i)=>{const b=el('button',{type:'button',className:'chip t',textContent:d[0]});b.setAttribute('aria-pressed','false');b.onclick=()=>abtPick('t',i);tb.push(b);$('#targs').append(b)});
+abtPick('f',0);
+
+/* ---------- router ---------- */
+const examples = ['ما الذي تسبب في أغلب إصابات السيور الناقلة؟','أي أجزاء الجسم أكثر إصابة؟','أرني حوادث مشابهة لهذا الحادث','كيف وقعت آخر حوادث حراسة السيور؟','كم حادثاً وقع كل سنة منذ 2015؟'];
+const reFind=/مشابه|شبيه|أرني|اعرض لي|كيف (وقع|حدث|حصل)|similar|show me|how did/i;
+const reCount=/كم|أكثر|أغلب|أكبر|عدد|نسبة|اتجاه|متوسط|ترتيب|how many|most|count|trend|top/i;
+function route(q){
+  q=q.trim(); if(!q) return;
+  $('#qin').value=q;
+  let kind, why;
+  if(reFind.test(q)){kind='find';why='السؤال يطلب حالات مشابهة أو شرح كيف وقع حادث، وهذا يحتاج قراءة سجلات.';}
+  else if(reCount.test(q)){kind='count';why='السؤال يطلب عدداً أو ترتيباً أو نسبة، وهذا يحتاج حساباً على كل السجلات.';}
+  else {kind='find';why='لم أجد كلمة عدّ واضحة، فيؤخذ مسار الوصف افتراضياً.';}
+  $('#pCount').classList.toggle('on',kind==='count'); $('#pFind').classList.toggle('on',kind==='find');
+  $('#verdict').innerHTML=`<span>${kind==='count'?'مسار العدّ':'مسار الوصف'}:</span> ${why}`;
+}
+examples.forEach(q=>{const b=el('button',{type:'button',className:'q',textContent:q});b.onclick=()=>route(q);$('#qchips').append(b)});
+$('#qgo').onclick=()=>route($('#qin').value);
+$('#qin').addEventListener('keydown',e=>{if(e.key==='Enter')route(e.target.value)});
+
+/* ---------- metrics ---------- */
+const metrics = {
+  'تقنية':[['Macro-F1','المقياس الرئيسي: يعطي كل فئة وزناً متساوياً، لأن الفئات غير متوازنة والدقة العامة قد تبدو عالية وهي تخطئ الفئات النادرة.'],['+10 نقاط','أن يتفوق BERT على النموذج المرجعي بعشر نقاط مئوية على الأقل في Macro-F1 لكل هدف.'],['صحة الإجابة والدليل','يُقاس المساعد على نحو 30 سؤالاً معروفة الجواب: هل الرقم أو الحقيقة صحيحة، وهل السجلات المذكورة تدعمها.']],
+  'أعمال':[['20–30%','خفض تكرار الحوادث المتكررة باستخدام التنبيهات المبكرة.'],['90%','تقليل وقت مراجعة التقارير عبر 274,737 سجلاً فأكثر.'],['58% ← أقل من 10%','خفض نسبة الخطأ في التصنيف.'],['80% أو أكثر','نسبة التقارير المؤهلة التي تُصنَّف تلقائياً، والباقي يُحال للمراجعة البشرية.']],
+  'العائد (ROI)':[['تجنّب التكلفة','العائد الأساسي من منع الحوادث المكلفة وليس من إيراد جديد.'],['توفير مباشر','تفادي إيقاف المناجم وضياع الإنتاج، وتقليل الغرامات ومطالبات الإصابة، وتوفير ساعات المهندسين.'],['12–18 شهراً','المدة المتوقعة لتحقيق عائد إيجابي بعد النشر.']]
+};
+const mt=$('#mtabs'); const mtb=[];
+Object.keys(metrics).forEach((k,i)=>{const b=el('button',{type:'button',className:'tab',textContent:k});b.setAttribute('role','tab');b.onclick=()=>showM(k);mtb.push(b);mt.append(b)});
+function showM(k){
+  mtb.forEach(b=>b.setAttribute('aria-selected',b.textContent===k));
+  const p=$('#mpanel'); p.textContent='';
+  metrics[k].forEach(([b,d])=>p.append(el('div',{className:'fig'},[el('div',{className:'b',textContent:b}),el('div',{className:'d',textContent:d})])));
+}
+showM('تقنية');
+
+/* ---------- analytical questions ---------- */
+const aq = {
+  'وصفية · ماذا حدث؟':['ما أكثر أنواع حوادث المناجم شيوعاً؟','كم إصابة لكل جزء من الجسم، وهل يختلف ذلك حسب المعدة؟','ما نسبة الإصابات البسيطة مقابل الخطيرة، وكيف تقارن بين مناجم الفحم والمعادن؟','كم حادثاً وقع في كل وظيفة، وماذا كان العامل يفعل؟','كم حادثاً وقع كل سنة وكل ربع، وأي الفترات كانت الأعلى؟'],
+  'تشخيصية · لماذا حدث؟':['لماذا يُصاب العمال الأقل خبرة أكثر أو بشدة أكبر من ذوي الخبرة؟','ما سبب تجمّع الحوادث في أوقات معينة مثل الصباح الباكر أو نهاية الوردية الطويلة؟','ما سبب ارتباط معدات أو موديلات معينة بعدد أكبر من الإصابات الخطيرة؟','لماذا تختلف أنماط الحوادث بين المناجم تحت الأرض والمفتوحة؟','ما العوامل المشتركة في الحوادث الأشد؟'],
+  'تنبؤية · ماذا سيحدث؟':['ما نوع الحادث المتوقع من نص تقرير جديد؟','ما الجزء المصاب المتوقع من النص؟','ما شدة الإصابة المتوقعة؟','أي أنواع الحوادث يُتوقع أن تزداد في السنوات القادمة؟','أي وظائف أو معدات أكثر عرضة لإصابات خطيرة؟'],
+  'وصفية إرشادية · ماذا نفعل؟':['أين نركّز تدريب السلامة بحسب الوظيفة والنشاط الأكثر خطراً؟','أي معدات أو أنشطة تحتاج حواجز أو حماية إضافية؟','أي تقارير تُعطى أولوية مراجعة عاجلة؟','ما الإجراءات الوقائية المقترحة لأكثر الحوادث تكراراً؟','متى وأين نضع التنبيهات المبكرة لتقليل الحوادث المتكررة؟'],
+  'معرفية · ما الذي يمكن أتمتته؟':['كيف يصنّف الذكاء الاصطناعي التقارير تلقائياً بدل المراجعة اليدوية؟','كيف يتنبأ بشدة الإصابة ليحدد التقارير العاجلة؟','كيف يكشف أنماطاً خفية عبر آلاف التقارير لا تظهر في التصنيفات؟','كيف نجد حوادث مشابهة بالبحث بلغة طبيعية؟','كيف يجيب المساعد عن أسئلة السلامة مع ذكر السجلات التي اعتمد عليها؟']
+};
+const qt=$('#qtabs'); const qtb=[];
+Object.keys(aq).forEach(k=>{const b=el('button',{type:'button',className:'tab',textContent:k});b.setAttribute('role','tab');b.onclick=()=>showQ(k);qtb.push(b);qt.append(b)});
+function showQ(k){
+  qtb.forEach(b=>b.setAttribute('aria-selected',b.textContent===k));
+  const ul=el('ul',{className:'qlist'}); aq[k].forEach(q=>ul.append(el('li',{textContent:q})));
+  const p=$('#qpanel'); p.textContent=''; p.append(ul);
+}
+showQ(Object.keys(aq)[0]);
+
+/* ---------- timeline ---------- */
+const phases = [
+  {t:'1 · البيانات',from:1,to:2,w:'الأسبوع 1–2',d:'بيانات نظيفة، ودفتر نتائج الاستكشاف، ولوحة اتجاهات.'},
+  {t:'2 · المرجع',from:3,to:3,w:'الأسبوع 3',d:'درجة Macro-F1 للنموذج المرجعي لكل مهمة.'},
+  {t:'3 · BERT',from:4,to:6,w:'الأسبوع 4–6',d:'نماذج مدرّبة، ومقارنة المقاييس، وتحليل الأخطاء.'},
+  {t:'4 · الأنماط',from:7,to:7,w:'الأسبوع 7',d:'تقرير أنماط السلامة، وعيّنة من 100 تقرير مراجَعة يدوياً.'},
+  {t:'5 · المساعد',from:8,to:10,w:'الأسبوع 8–10',d:'المساعد الهجين، ونتائج تقييم الثلاثين سؤالاً.'},
+  {t:'6 · النشر',from:11,to:12,w:'الأسبوع 11–12',d:'التطبيق التجريبي، وبطاقة النموذج، والتقرير النهائي.'}
+];
+const g=$('#gantt'); const gb=[];
+for(let i=1;i<=12;i++){ const s=el('div',{className:'wk',textContent:i}); s.style.gridColumn=i; s.style.gridRow=1; g.append(s); }
+phases.forEach((p,i)=>{ const b=el('button',{type:'button',textContent:p.t}); b.style.gridColumn=`${p.from} / ${p.to+1}`; b.style.gridRow=2; b.setAttribute('aria-pressed','false'); b.onclick=()=>showP(i); gb.push(b); g.append(b); });
+function showP(i){ gb.forEach((b,j)=>b.setAttribute('aria-pressed',j===i)); const p=phases[i]; $('#phaseDetail').innerHTML=`<h3>${p.t} <span class="tag">${p.w}</span></h3><p style="margin-top:8px">المخرجات: ${p.d}</p>`; }
+showP(0);
+
+/* ---------- deploy ---------- */
+const dep = [
+  ['1 · عرض داخلي','تشغيل محلي على بيانات الاختبار للتأكد من الأداء قبل أن يراه أحد.'],
+  ['2 · تجربة محدودة','تطبيقه على عيّنة من حوادث حديثة (مثلاً آخر شهر) مع مراجعة بشرية موازية للمقارنة.'],
+  ['3 · تشغيل كامل','فتحه لفريق السلامة، مع إبقاء المراجعة البشرية للحالات التي يقل فيها ثقة النموذج عن حدّ معيّن.']
+];
+const sb=[];
+dep.forEach(([t,d],i)=>{ const b=el('button',{type:'button',className:'step'},[el('b',{textContent:t}),el('span',{className:'x',textContent:d})]); b.setAttribute('aria-pressed',i===0); b.onclick=()=>{sb.forEach((x,j)=>x.setAttribute('aria-pressed',j===i))}; sb.push(b); $('#steps').append(b); });
+
+/* ---------- team ---------- */
+[['المشكلة والأهداف','تعريف المشكلة وأهداف المشروع'],['فهم الأعمال','قبل وبعد، مقاييس النجاح، العائد'],['الكيان والهدف','والمقاييس التقنية'],['الأسئلة التحليلية','25 سؤالاً بخمسة أنواع'],['الجدول التحليلي','ABT وقنوات التواصل']]
+ .forEach(([n,r])=>$('#teamGrid').append(el('div',{className:'member'},[el('b',{textContent:n}),el('span',{textContent:r})])));
+[['WhatsApp','تواصل يومي سريع'],['Microsoft Teams','اجتماعات أسبوعية'],['Google Drive','مستندات مشتركة'],['GitHub','الكود والإصدارات'],['Notion','تتبع المهام'],['البريد','التسليمات الرسمية']]
+ .forEach(([n,u])=>$('#tools').append(el('span',{className:'tool'},[n,el('em',{textContent:u})])));
+</script>
+</body>
+</html>
